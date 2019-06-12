@@ -103,57 +103,80 @@ class AccountPresenter(view: AccountView) {
 ---
 
 # Model View Intent (MVI)
-
 +++
-(button click/event)
+@snap[west]
+![MVI](image/mvi.gif)
+@snapend
 
-➡️ Intent/Action
+@snap[east span-40 text-left]
+@box[](👆🏻(button click/event))
+@box[](🚓 Intent/Action))
+@box[](🏭 Reducer (process action))
+@box[](🏬 Store/States)
+@box[](📺 View (Subscribed to the changes to store/states))
 
-➡️ Reducer (process action) 
-
-➡️ Store/States 
-
-➡️ View (Subscribed to the changes to store/states)
+@snapend
 
 +++
 ```kotlin
-class State() {
-	var number = 0
+class AccountStore() {
+	@Observable
+	var state = mapOf<String, Any>("balance", 0)
+	val observers: ArrayList<ObserverView> = arrayListOf()
+
+	fun addObservers(view: ObserverView){
+		observers.add(view)
+	}
+
+	fun notify() {
+		observers.notifyAll()
+	}
+
+
 }
 ```
-
+@[2-3](An observable state, allow us to monitor changes)
+@[6-8](Add observer)
+@[9-11](Notify state changes to observer)
 +++
+User clicks button
 ```kotlin
+data class Action(val type = "ADDITION", val money: Int)
+
 button.onClick {
-	sendAction()
+	AccountStore.sendAction(Action("ADDITION", 10))
 }
+
 ```
+@[1](An Action data class)
+
 +++
 ```kotlin 
-data class Action(val type = "ADDITION", val number: Int)
+fun actionReducer(state: Map = mapOf(), action: Action){
+	val newState = mutableMapOf<String, Any>()
 
-sendAction(){
-	val addition = Action("ADDITION", 10)
-}
-
-fun actionReducer(var state: State, action){
 	when (action.type){
-	 "ADDITION" -> state.number = state.number + action.number
+	 "ADDITION" -> {
+	 	newState.putAll(state)
+	 	newState["balance"] = newState["balance"] as Int + action.number
+	 	return newState
+	 }
+	 default -> state
 	}
 }
 
-// Then notify the view 
+// Then notify the view via the AccountStore observer
 ```
+
 +++
 ### Pros
 * Clear
 * Uni direction, no race condition.
-* Can log action
-* Can trace history
+* Because we are not modifying the state. Meaning we can do time travel debugging.
 
 +++
 ### Cons
 * Tedious
-* Steep learning curve (leads to shortcuts and nuclear bomb)
+* Steep learning curve
 
 ---
